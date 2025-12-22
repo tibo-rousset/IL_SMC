@@ -6,6 +6,8 @@ import sys
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 
+from genlm_project.metrics import *
+
 from genlm_project import (
     TunedLensLLM, 
     ActivationPotential, 
@@ -39,14 +41,6 @@ def parse_args():
 
     return parser.parse_args()
 
-def create_metric_fn(weight):
-    """
-    Creates a metric function with closure over the weight and logger.
-    """
-    
-    
-    return metric
-
 async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
@@ -65,7 +59,7 @@ async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
     sequences = await sampler.smc(
         n_particles=args.particles,
         max_tokens=args.max_tokens,
-        verbosity=0,
+        verbosity=1,
         ess_threshold=0.5,
         critic=critic 
     )
@@ -107,7 +101,7 @@ async def main():
         temperature=args.temperature
     )
 
-    metric_fn = create_metric_fn(args.weight)
+    metric_fn = entropy_score
     potential = ActivationPotential(model=llm, metric=metric_fn)
     logger.info("Potential initialized and linked to TunedLensLLM.")
 
