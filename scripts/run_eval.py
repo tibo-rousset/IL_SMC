@@ -43,17 +43,15 @@ def create_metric_fn(weight):
     """
     Creates a metric function with closure over the weight and logger.
     """
-    def my_metric(activations):
-        """Example: favor activations with higher norm"""
-        score = 0.0
-        if isinstance(activations, torch.Tensor):
-            raw_val = torch.norm(activations).item()
-            score = raw_val * weight
-            
-            logger.debug(f"Potential Activation | Norm: {raw_val:.4f} | Weighted Score: {score:.4f}")
-            
-        return score
-    return my_metric
+    def metric(logits):
+
+        log_probs = torch.log_softmax(logits, dim=-1)       # log p_i
+        probs = torch.exp(log_probs)                        # p_i
+        entropy = -(probs * log_probs).sum(dim=-1)          # shape: (batch,)
+
+        return entropy.item()
+    
+    return metric
 
 async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
