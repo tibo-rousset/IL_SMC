@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genlm_project"
+version = "0.1.0"
+description = "Custom GenLM potentials and evaluation suite for TruthfulQA"
+requires-python = ">=3.9"
+dependencies = [
+    "torch",
+    "numpy",
+    "tqdm",
+    "datasets",
+    "evaluate",
+    "transformers",
+    "absl-py",
+    # "genlm",     # Ensure genlm is installed in your env
+    "tuned-lens" # If you are using tuned lens features
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
