@@ -1,7 +1,7 @@
 from .llms import TunedLensLLM
 from .potentials import ActivationPotential
 from .data import TruthfulQADataset, TruthfulQAInstance
-from .metrics import TruthfulQAEvaluator
+from .evaluator import TruthfulQAEvaluator
 from .utils import truthful_qa_prompt_formatter
 
 __all__ = [

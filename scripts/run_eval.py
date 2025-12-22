@@ -25,7 +25,7 @@ def my_metric(activations):
         return torch.norm(activations).item() * 0.1
     return 0.0
 
-async def inference_fn(instance, output_dir, replicate, llm_wrapper):
+async def inference_fn(instance, output_dir, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -42,7 +42,8 @@ async def inference_fn(instance, output_dir, replicate, llm_wrapper):
         n_particles=PARTICLES,
         max_tokens=MAX_TOKENS,
         verbosity=0,
-        ess_threshold=0.5
+        ess_threshold=0.5,
+        critic=critic
     )
 
     # 4. Decode
