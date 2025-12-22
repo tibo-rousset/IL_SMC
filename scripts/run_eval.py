@@ -3,11 +3,12 @@ import argparse
 import logging
 import torch
 import sys
+import os  # Added to handle directory creation if needed manually
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 
+# Import your custom modules
 from genlm_project.metrics import *
-
 from genlm_project import (
     TunedLensLLM, 
     ActivationPotential, 
@@ -20,28 +21,27 @@ from genlm_project import (
 logger = logging.getLogger("eval_script")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run TruthfulQA Evaluation with Custom Potentials")
+    parser = argparse.ArgumentParser(description="Run TruthfulQA Evaluation")
     
     # Model Args
-    parser.add_argument("--model_name", type=str, default="gpt2", help="HF Model name (must have tuned-lens available)")
-    parser.add_argument("--layer_idx", type=int, default=-1, help="Layer index to extract activations from")
-    parser.add_argument("--temperature", type=float, default=0.0001, help="Sampling temperature")
+    parser.add_argument("--model_name", type=str, default="gpt2", help="HF Model name")
+    parser.add_argument("--layer_idx", type=int, default=-1, help="Layer index")
+    parser.add_argument("--temperature", type=float, default=0.0001, help="Temperature")
     
     # Generation Args
-    parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens to generate")
-    parser.add_argument("--particles", type=int, default=5, help="Number of SMC particles")
-    
-    # Potential Args
-    parser.add_argument("--weight", type=float, default=1.0, help="Weight scaling factor for the potential score")
+    parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens")
+    parser.add_argument("--particles", type=int, default=5, help="SMC particles")
+    parser.add_argument("--weight", type=float, default=1.0, help="Potential weight")
     
     # Eval Args
-    parser.add_argument("--max_instances", type=int, default=5, help="Number of examples to evaluate (set 0 for all)")
-    parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Directory to save results")
-    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+    parser.add_argument("--max_instances", type=int, default=5, help="Num instances (0=all)")
+    parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Output directory")
+    parser.add_argument("--verbose", action="store_true", help="Debug logging")
 
     return parser.parse_args()
 
-async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
+# Update 1: inference_fn now accepts output_dir and replicate (even if unused)
+async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -59,7 +59,7 @@ async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
     sequences = await sampler.smc(
         n_particles=args.particles,
         max_tokens=args.max_tokens,
-        verbosity=1,
+        verbosity=0, # Reduce verbosity here to keep console clean
         ess_threshold=0.5,
         critic=critic 
     )
@@ -72,7 +72,6 @@ async def inference_fn(instance, args, replicate, llm_wrapper, critic=None):
     if not candidates:
         for seq, weight in zip(sequences.contexts, sequences.normalized_weights):
             full_text = b"".join([b for b in seq if isinstance(b, bytes)]).decode("utf-8", errors="ignore")
-
             gen_text = full_text[len(prompt_text):] if full_text.startswith(prompt_text) else full_text
             candidates[gen_text] = candidates.get(gen_text, 0.0) + weight
 
@@ -91,7 +90,9 @@ async def main():
         handlers=[logging.StreamHandler(sys.stdout)]
     )
     
-    logger.info(f"Starting Evaluation with args: {args}")
+    # Ensure output directory exists immediately
+    os.makedirs(args.output_dir, exist_ok=True)
+    logger.info(f"Results will be saved to: {args.output_dir}")
 
     logger.info(f"Loading TunedLensLLM: {args.model_name}...")
     llm = TunedLensLLM.from_name(
@@ -103,29 +104,31 @@ async def main():
 
     metric_fn = entropy_score
     potential = ActivationPotential(model=llm, metric=metric_fn)
-    logger.info("Potential initialized and linked to TunedLensLLM.")
+    logger.info("Potential initialized.")
 
     logger.info("Initializing Dataset & Evaluator...")
     dataset = TruthfulQADataset(split="validation")
     evaluator = TruthfulQAEvaluator()
 
+    # Update 2: bound_model_fn MUST accept 'replicate' to satisfy genlm contract
     async def bound_model_fn(instance, output_dir, replicate):
+        # We pass output_dir and replicate down to inference_fn
         return await inference_fn(
             instance, 
             args,
-            replicate, 
+            output_dir,
+            replicate,
             llm_wrapper=llm, 
             critic=potential
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else None
-    logger.info(f"Starting Evaluation Loop for {max_inst if max_inst else 'ALL'} instances...")
     
     await run_evaluation(
         dataset=dataset,
         model=bound_model_fn,
         evaluator=evaluator,
-        output_dir=args.output_dir,
+        output_dir=args.output_dir, # This tells run_evaluation where to save the final JSON
         overwrite_results=True,
         overwrite_outputs=True,
         verbosity=1,
