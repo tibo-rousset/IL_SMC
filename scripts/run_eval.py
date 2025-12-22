@@ -36,8 +36,6 @@ async def inference_fn(instance, output_dir, replicate, llm_wrapper, potential):
     # 2. Spawn Model
     current_llm = llm_wrapper.spawn(prompt_ids=raw_ids)
 
-    # 3. Create Sampler with POTENTIAL
-    # Note: Depending on your GenLM version, you might pass potential to sampler or .smc()
     sampler = direct_token_sampler(current_llm, potential=potential)
     
     sequences = await sampler.smc(

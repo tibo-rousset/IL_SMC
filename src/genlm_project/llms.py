@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from tuned_lens import TunedLens
 from genlm.backend.llm import load_model_by_name
-from genlm.control.potential.llm import PromptedLLM  # Adjusted import path for standard genlm
+from genlm.control.potential.built_in.llm import PromptedLLM
 
 class TunedLensLLM(PromptedLLM):
     """
