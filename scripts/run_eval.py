@@ -78,8 +78,8 @@ async def main():
     dataset = TruthfulQADataset(split="validation")
     evaluator = TruthfulQAEvaluator()
 
-    async def bound_model_fn(inst, out, rep):
-        return await inference_fn(inst, out, rep, llm_wrapper=llm, potential=potential)
+    async def bound_model_fn(instance, output_dir, replicate):
+        return await inference_fn(instance, output_dir, replicate, llm_wrapper=llm, potential=potential)
 
     print("Starting Evaluation Loop...")
     await run_evaluation(
