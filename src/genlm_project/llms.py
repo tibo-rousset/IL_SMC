@@ -110,6 +110,41 @@ class TunedLensLLM(PromptedLLM):
         else:
             return np.zeros(768)
 
+    async def get_dual_activations(self, context):
+        """
+        Returns BOTH the Tuned Lens logits (mid-layer) and the Final Layer logits.
+        Required for KL Divergence calculations.
+        """
+        # 1. Sanitize & Tokenize
+        safe_context = [t for t in context if isinstance(t, (str, bytes, int))]
+        if not safe_context: return None, None
+        
+        if isinstance(safe_context, str): safe_context = self.tokenize(safe_context)
+        try: context_ids = self.encode_tokens(safe_context)
+        except: return None, None
+            
+        full_ids = self.prompt_ids + context_ids
+        
+        # 2. Run Model
+        raw_model = getattr(self.model, "model", getattr(self.model, "_model", None))
+        input_tensor = torch.tensor([full_ids], device=self.model.device)
+            
+        with torch.no_grad():
+            outputs = raw_model(
+                input_tensor, 
+                output_hidden_states=True,
+                return_dict=True
+            )
+        
+        # 3. Get Mid-Layer (Lens) Logits
+        target_hidden = outputs.hidden_states[self.target_layer_idx]
+        lens_logits = self.lens(target_hidden, self.target_layer_idx)[0, -1, :]
+        
+        # 4. Get Final Layer (Model) Logits
+        final_logits = outputs.logits[0, -1, :]
+        
+        return lens_logits, final_logits
+
     def spawn(self, prompt_ids=None, eos_tokens=None, temperature=None):
         prompt_ids = prompt_ids if prompt_ids is not None else self.prompt_ids.copy()
         temperature = temperature if temperature is not None else self.temperature
