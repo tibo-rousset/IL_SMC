@@ -3,7 +3,8 @@ import argparse
 import logging
 import torch
 import sys
-import os  # Added to handle directory creation if needed manually
+import os
+import json
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 
@@ -120,7 +121,7 @@ async def main():
 
     max_inst = args.max_instances if args.max_instances > 0 else None
     
-    await run_evaluation(
+    results = await run_evaluation(
         dataset=dataset,
         model=bound_model_fn,
         evaluator=evaluator,
@@ -130,6 +131,26 @@ async def main():
         verbosity=1,
         max_instances=max_inst,
     )
+
+    final_path = os.path.join(args.output_dir, "detailed_results.json")
+    try:
+        clean_results = []
+        iterable = results.items() if isinstance(results, dict) else enumerate(results)
+        
+        for key, res in iterable:
+            entry = {
+                "id": key,
+                "score": getattr(res, "score", 0.0),
+                "metrics": getattr(res, "metadata", getattr(res, "metrics", {}))
+            }
+            clean_results.append(entry)
+                
+        with open(final_path, "w") as f:
+            json.dump(clean_results, f, indent=2)
+        logger.info(f"Successfully saved DETAILED results to {final_path}")
+        
+    except Exception as e:
+        logger.error(f"Failed to manually save results: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
