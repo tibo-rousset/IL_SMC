@@ -9,33 +9,6 @@ import torch
 
 logger = logging.getLogger()
 
-def entropy_score(logits):
-    """Calculates the entropy of the logits distribution."""
-
-    # Detach to ensure no graph retention
-    logits = logits.detach()
-    log_probs = F.log_softmax(logits, dim=-1)
-    probs = torch.exp(log_probs)
-    entropy = -(probs * log_probs).sum(dim=-1)
-    
-    val = entropy.mean().item() if entropy.ndim > 0 else entropy.item()
-    # Debug log (verbose)
-    # logger.debug(f"Potential Activation | Entropy: {val:.4f}")
-    return val
-
-def kl_divergence_score(logits_mid, logits_final):
-    """Calculates KL(P_mid || P_final)."""
-    
-    # Detach inputs
-    logits_mid = logits_mid.detach()
-    logits_final = logits_final.detach()
-
-    p_probs = F.softmax(logits_mid, dim=-1)
-    q_log_probs = F.log_softmax(logits_final, dim=-1)
-
-    kl_val = F.kl_div(q_log_probs, p_probs, reduction='batchmean')
-    return kl_val.item()
-
 class TruthfulQAEvaluator(Evaluator):
     """
     Evaluator that matches the official TruthfulQA metric implementations.
@@ -86,12 +59,10 @@ class TruthfulQAEvaluator(Evaluator):
         Evaluates a single generated response against the instance references.
         """
         # 1. Prepare References
-        # Handle cases where 'correct_answers' is a list or needs splitting from 'best_answer'
         ref_true = getattr(instance, 'correct_answers', []) 
         if not ref_true:
             ref_true = self.split_multi_answer(getattr(instance, 'best_answer', ''))
 
-        # TruthfulQA Standard: Always accept "I have no comment." as correct
         if "I have no comment." not in ref_true:
             ref_true.append("I have no comment.")
 
@@ -146,8 +117,6 @@ class TruthfulQAEvaluator(Evaluator):
         tqdm.write(f"\n[ID: {getattr(instance, 'instance_id', 'N/A')}] Q: {instance.question}")
         tqdm.write(f"Model: {response}\n" + "-" * 40)
 
-        # The primary score controls what `genlm` displays in the progress bar.
-        # We prefer BLEURT diff, fall back to BLEU diff.
         primary_score = metrics_dict.get('bleurt diff', metrics_dict.get('bleu diff', 0.0))
         
         return EvaluationResult(
