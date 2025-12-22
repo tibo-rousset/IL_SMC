@@ -40,7 +40,6 @@ def parse_args():
 
     return parser.parse_args()
 
-# Update 1: inference_fn now accepts output_dir and replicate (even if unused)
 async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
@@ -59,7 +58,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     sequences = await sampler.smc(
         n_particles=args.particles,
         max_tokens=args.max_tokens,
-        verbosity=0, # Reduce verbosity here to keep console clean
+        verbosity=0,
         ess_threshold=0.5,
         critic=critic 
     )
@@ -90,7 +89,6 @@ async def main():
         handlers=[logging.StreamHandler(sys.stdout)]
     )
     
-    # Ensure output directory exists immediately
     os.makedirs(args.output_dir, exist_ok=True)
     logger.info(f"Results will be saved to: {args.output_dir}")
 
@@ -110,9 +108,7 @@ async def main():
     dataset = TruthfulQADataset(split="validation")
     evaluator = TruthfulQAEvaluator()
 
-    # Update 2: bound_model_fn MUST accept 'replicate' to satisfy genlm contract
     async def bound_model_fn(instance, output_dir, replicate):
-        # We pass output_dir and replicate down to inference_fn
         return await inference_fn(
             instance, 
             args,
@@ -128,7 +124,7 @@ async def main():
         dataset=dataset,
         model=bound_model_fn,
         evaluator=evaluator,
-        output_dir=args.output_dir, # This tells run_evaluation where to save the final JSON
+        output_dir=args.output_dir,
         overwrite_results=True,
         overwrite_outputs=True,
         verbosity=1,
