@@ -80,7 +80,7 @@ async def main():
     evaluator = TruthfulQAEvaluator()
 
     async def bound_model_fn(instance, output_dir, replicate):
-        return await inference_fn(instance, output_dir, replicate, llm_wrapper=llm)
+        return await inference_fn(instance, output_dir, replicate, llm_wrapper=llm, critic=potential)
 
     print("Starting Evaluation Loop...")
     await run_evaluation(
