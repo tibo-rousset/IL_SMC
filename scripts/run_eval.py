@@ -49,6 +49,8 @@ def create_metric_fn(weight):
         probs = torch.exp(log_probs)                        # p_i
         entropy = -(probs * log_probs).sum(dim=-1)          # shape: (batch,)
 
+        logger.debug(f"Potential Activation | Entropy: {entropy.item():.4f}")
+
         return entropy.item()
     
     return metric
