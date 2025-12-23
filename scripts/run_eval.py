@@ -118,7 +118,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     print(summary_pivot)
     print("="*40)
 
-async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None, viz=False, viz_port=8080):
+async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -138,8 +138,8 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     full_json_path = os.path.join(output_dir, json_filename)
 
     # 4. Run SMC Sampling
-    if viz:
-        visualizer = InferenceVisualizer(port=viz_port)
+    if args.viz:
+        visualizer = InferenceVisualizer(port=args.viz_port)
 
     sequences = await sampler.smc(
         n_particles=args.particles,
@@ -165,8 +165,8 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
         clean_resp = sequence.strip().split("\n\n")[0].split("\nQ:")[0].strip() or "I have no comment."
         responses.append(ModelResponse(response=clean_resp, weight=prob))
     
-    if viz:
-        logger.info(f"Generating visualization for instance ID {inst_id} on port {viz_port}...")
+    if args.viz:
+        logger.info(f"Generating visualization for instance ID {inst_id} on port {args.viz_port}...")
         visualizer.visualize(full_json_path)
         visualizer.shutdown_server()
 
@@ -219,9 +219,7 @@ async def main():
             output_dir,
             replicate,
             llm_wrapper=llm, 
-            critic=potential,
-            viz=args.viz,
-            viz_port=args.viz_port
+            critic=potential
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else None
