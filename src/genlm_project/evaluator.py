@@ -98,9 +98,8 @@ class TruthfulQAEvaluator(Evaluator):
         metrics_dict.update(self._calculate_metrics_stats("rougeL", rl_scores[:len(ref_true)], rl_scores[len(ref_true):]))
 
         # --- C. BLEURT ---
-        if self.bleurt:
+        if self.bleurt is not None:
             try:
-                # BLEURT can process batches, which is faster
                 scores = self.bleurt.compute(
                     predictions=[response] * len(all_refs), 
                     references=all_refs
