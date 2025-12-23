@@ -145,11 +145,9 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     # 3. Initialize Sampler
     sampler = DirectTokenSampler(current_llm)
     
-    inst_id = instance.get('id', str(abs(hash(instance.get('question', '')))))
-    
-    safe_id = str(inst_id).replace("/", "_")
-    
-    json_filename = f"smc_record_{safe_id}_rep{replicate}.json"
+    inst_id = instance.instance_id if hasattr(instance, 'instance_id') else "unk"
+
+    json_filename = f"smc_record_{inst_id}_rep{replicate}.json"
     full_json_path = os.path.join(output_dir, json_filename)
 
     # 4. Run SMC Sampling
@@ -181,6 +179,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
         responses.append(ModelResponse(response=clean_resp, weight=prob))
     
     if viz:
+        logger.info(f"Generating visualization for instance ID {inst_id}...")
         visualizer.visualize(full_json_path)
 
     return ModelOutput(responses=responses)
