@@ -85,7 +85,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
                 metrics_dict = res['metrics']
             elif 'results' in res:
                 sub = res['results'][0]
-                metrics_dict = getattr(sub, 'metadata', getattr(sub, 'metrics', {}))
+                metrics_dict = sub['metadata']
         
         else:
             metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
