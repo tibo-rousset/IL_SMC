@@ -49,31 +49,19 @@ def save_summary_csv(results_list, model_name, output_dir):
     """
     logger.info("Aggregating results into summary CSV...")
     
-    # 1. Flatten results into a list of dictionaries
     data = []
     for res in results_list:
-        # 'res' is likely an EvaluationResult object. 
-        # We need to extract the metrics dictionary and the instance ID.
         row = {'Model': model_name}
-        
-        # Add all scalar metrics (BLEU, ROUGE, MC1, etc.)
-        if hasattr(res, 'metrics'):
-            row.update(res.metrics)
+
+        if hasattr(res, 'metadata'):
+            row.update(res.metadata)
         
         data.append(row)
 
-    # 2. Create DataFrame
     df = pd.DataFrame(data)
 
-    # 3. Calculate Mean across all questions (axis=0 in the snippet logic)
-    #    We group by Model to simulate the "questions" dataframe aggregation
-    #    The original snippet assumed 'questions' had questions as rows.
-    #    Here we aggregate immediately.
     summary = df.groupby('Model').mean(numeric_only=True)
 
-    # 4. Transpose/Stack to match the snippet's "format_frame" logic
-    #    The snippet expects a MultiIndex or stacked frame to reset.
-    #    We simulate the flow:
     results_long = summary.stack().reset_index()
     results_long.columns = ['Model', 'Metric', 'Value']
 
@@ -155,9 +143,21 @@ async def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[logging.StreamHandler(sys.stdout)]
     )
+
+    safe_model_name = args.model_name.replace("/", "_")
     
-    os.makedirs(args.output_dir, exist_ok=True)
-    logger.info(f"Results will be saved to: {args.output_dir}")
+    run_name = (
+        f"{safe_model_name}_"
+        f"L{args.layer_idx}_"
+        f"T{args.temperature}_"
+        f"P{args.particles}_"
+        f"W{args.weight}"
+    )
+    
+    final_output_dir = os.path.join(args.output_dir, run_name)
+    os.makedirs(final_output_dir, exist_ok=True)
+    
+    logger.info(f"Results will be saved to: {final_output_dir}")
 
     logger.info(f"Loading TunedLensLLM: {args.model_name}...")
     llm = TunedLensLLM.from_name(
