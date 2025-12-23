@@ -52,11 +52,17 @@ def save_summary_csv(results_list, model_name, output_dir):
     data = []
     for res in results_list:
         row = {'Model': model_name}
-
-        if hasattr(res, 'metadata'):
-            row.update(res.metadata)
+        
+        metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
+        
+        if metrics_dict:
+            row.update(metrics_dict)
         
         data.append(row)
+
+    if not data:
+        logger.warning("No data found to aggregate.")
+        return
 
     df = pd.DataFrame(data)
 
@@ -65,12 +71,11 @@ def save_summary_csv(results_list, model_name, output_dir):
     results_long = summary.stack().reset_index()
     results_long.columns = ['Model', 'Metric', 'Value']
 
-    # 5. Filter to the most informative metrics requested
     target_metrics = [
         'MC1', 'MC2',
         'bleu acc',
         'rouge1 acc',
-        'bleurt acc',
+        'bleurt acc', 
         'BLEURT acc',
         'GPT-judge acc',
         'GPT-info acc'
@@ -79,11 +84,9 @@ def save_summary_csv(results_list, model_name, output_dir):
     final_df = results_long[results_long['Metric'].isin(target_metrics)]
 
     if final_df.empty:
-        logger.warning("No matching metrics found (MC1/BLEU acc/etc). Saving all computed metrics instead.")
+        logger.warning("No matching metrics found. Saving all computed metrics instead.")
         final_df = results_long
 
-    # 6. Pivot and Save
-    #    Pivot: Index=Model, Columns=Metric, Values=Value
     summary_pivot = pd.pivot_table(final_df, values='Value', index='Model', columns='Metric')
     
     csv_path = os.path.join(output_dir, 'summary.csv')
