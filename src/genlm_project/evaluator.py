@@ -44,7 +44,6 @@ class TruthfulQAEvaluator(Evaluator):
         if not scores_true:
             return {}
         
-        # Use np.nanmax to handle potential NaNs safely, falling back to 0.0
         max_true = np.max(scores_true) if len(scores_true) > 0 else 0.0
         max_false = np.max(scores_false) if len(scores_false) > 0 else 0.0
 
@@ -122,5 +121,5 @@ class TruthfulQAEvaluator(Evaluator):
         return EvaluationResult(
             score=primary_score, 
             desc=f"score={primary_score:.2f}", 
-            metrics=metrics_dict
+            metadata=metrics_dict
         )
