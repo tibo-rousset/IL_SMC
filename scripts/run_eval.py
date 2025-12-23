@@ -17,7 +17,8 @@ from genlm_project import (
     ActivationPotential, 
     TruthfulQADataset, 
     TruthfulQAEvaluator, 
-    truthful_qa_prompt_formatter
+    MonitoredDirectTokenSampler,
+    truthful_qa_prompt_formatter,
 )
 
 # Setup Logger
@@ -144,7 +145,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     current_llm = llm_wrapper.spawn(prompt_ids=raw_ids)
 
     # 3. Initialize Sampler
-    sampler = DirectTokenSampler(current_llm)
+    sampler = MonitoredDirectTokenSampler(current_llm)
     
     inst_id = instance.instance_id if hasattr(instance, 'instance_id') else "unk"
 
