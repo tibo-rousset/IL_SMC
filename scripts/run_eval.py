@@ -180,7 +180,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
         responses.append(ModelResponse(response=clean_resp, weight=prob))
     
     if viz:
-        logger.info(f"Generating visualization for instance ID {inst_id}...")
+        logger.info(f"Generating visualization for instance ID {inst_id} on port {viz_port}...")
         visualizer.visualize(full_json_path)
 
     return ModelOutput(responses=responses)
