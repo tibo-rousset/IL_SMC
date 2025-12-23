@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens")
     parser.add_argument("--particles", type=int, default=5, help="SMC particles")
     parser.add_argument("--weight", type=float, default=1.0, help="Potential weight")
+    parser.add_argument("--ess_threshold", type=float, default=0.5, help="ESS threshold")
     
     # Eval Args
     parser.add_argument("--max_instances", type=int, default=5, help="Num instances (0=all)")
@@ -144,7 +145,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
         n_particles=args.particles,
         max_tokens=args.max_tokens,
         verbosity=0,
-        ess_threshold=0.5,
+        ess_threshold=args.ess_threshold,
         json_path=full_json_path,
         critic=critic,
     )
