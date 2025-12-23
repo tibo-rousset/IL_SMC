@@ -5,6 +5,7 @@ import torch
 import sys
 import os
 import json
+import pandas as pd
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 
@@ -40,6 +41,71 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true", help="Debug logging")
 
     return parser.parse_args()
+
+def save_summary_csv(results_list, model_name, output_dir):
+    """
+    Aggregates evaluation results and saves a summary CSV matching 
+    the official TruthfulQA format.
+    """
+    logger.info("Aggregating results into summary CSV...")
+    
+    # 1. Flatten results into a list of dictionaries
+    data = []
+    for res in results_list:
+        # 'res' is likely an EvaluationResult object. 
+        # We need to extract the metrics dictionary and the instance ID.
+        row = {'Model': model_name}
+        
+        # Add all scalar metrics (BLEU, ROUGE, MC1, etc.)
+        if hasattr(res, 'metrics'):
+            row.update(res.metrics)
+        
+        data.append(row)
+
+    # 2. Create DataFrame
+    df = pd.DataFrame(data)
+
+    # 3. Calculate Mean across all questions (axis=0 in the snippet logic)
+    #    We group by Model to simulate the "questions" dataframe aggregation
+    #    The original snippet assumed 'questions' had questions as rows.
+    #    Here we aggregate immediately.
+    summary = df.groupby('Model').mean(numeric_only=True)
+
+    # 4. Transpose/Stack to match the snippet's "format_frame" logic
+    #    The snippet expects a MultiIndex or stacked frame to reset.
+    #    We simulate the flow:
+    results_long = summary.stack().reset_index()
+    results_long.columns = ['Model', 'Metric', 'Value']
+
+    # 5. Filter to the most informative metrics requested
+    target_metrics = [
+        'MC1', 'MC2',
+        'bleu acc',
+        'rouge1 acc',
+        'bleurt acc', # Changed capitalization to match likely dict keys
+        'BLEURT acc',
+        'GPT-judge acc',
+        'GPT-info acc'
+    ]
+    
+    final_df = results_long[results_long['Metric'].isin(target_metrics)]
+
+    if final_df.empty:
+        logger.warning("No matching metrics found (MC1/BLEU acc/etc). Saving all computed metrics instead.")
+        final_df = results_long
+
+    # 6. Pivot and Save
+    #    Pivot: Index=Model, Columns=Metric, Values=Value
+    summary_pivot = pd.pivot_table(final_df, values='Value', index='Model', columns='Metric')
+    
+    csv_path = os.path.join(output_dir, 'summary.csv')
+    summary_pivot.to_csv(csv_path)
+    logger.info(f"Summary CSV saved to: {csv_path}")
+    print("\n" + "="*40)
+    print("FINAL RESULTS SUMMARY")
+    print("="*40)
+    print(summary_pivot)
+    print("="*40)
 
 async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
     # 1. Format Prompt
@@ -132,25 +198,10 @@ async def main():
         max_instances=max_inst,
     )
 
-    final_path = os.path.join(args.output_dir, "detailed_results.json")
-    try:
-        clean_results = []
-        iterable = results.items() if isinstance(results, dict) else enumerate(results)
-        
-        for key, res in iterable:
-            entry = {
-                "id": key,
-                "score": getattr(res, "score", 0.0),
-                "metrics": getattr(res, "metadata", getattr(res, "metrics", {}))
-            }
-            clean_results.append(entry)
-                
-        with open(final_path, "w") as f:
-            json.dump(clean_results, f, indent=2)
-        logger.info(f"Successfully saved DETAILED results to {final_path}")
-        
-    except Exception as e:
-        logger.error(f"Failed to manually save results: {e}")
+    if results is not None:
+        save_summary_csv(results, args.model_name, args.output_dir)
+    else:
+        logger.warning("No results returned from evaluation loop.")
 
 if __name__ == "__main__":
     asyncio.run(main())
