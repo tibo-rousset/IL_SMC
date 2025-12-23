@@ -70,7 +70,7 @@ def save_summary_csv(results_list, model_name, output_dir):
         'MC1', 'MC2',
         'bleu acc',
         'rouge1 acc',
-        'bleurt acc', # Changed capitalization to match likely dict keys
+        'bleurt acc',
         'BLEURT acc',
         'GPT-judge acc',
         'GPT-info acc'
@@ -191,7 +191,7 @@ async def main():
         dataset=dataset,
         model=bound_model_fn,
         evaluator=evaluator,
-        output_dir=args.output_dir,
+        output_dir=final_output_dir,
         overwrite_results=True,
         overwrite_outputs=True,
         verbosity=1,
@@ -199,7 +199,7 @@ async def main():
     )
 
     if results is not None:
-        save_summary_csv(results, args.model_name, args.output_dir)
+        save_summary_csv(results, args.model_name, final_output_dir)
     else:
         logger.warning("No results returned from evaluation loop.")
 
