@@ -11,7 +11,7 @@ dependencies = [
     "torch",
     "numpy",
     "tqdm",
-    "datasets==2.10.0",
+    "datasets==2.11.0+computecanada",
     "evaluate",
     "transformers",
     "absl-py",
