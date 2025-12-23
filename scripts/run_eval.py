@@ -41,6 +41,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Output directory")
     parser.add_argument("--verbose", action="store_true", help="Debug logging")
     parser.add_argument("--viz", action="store_true", help="Enable visualization")
+    parser.add_argument("--viz_port", type=int, default=8080, help="Port for visualization server")
 
     parser.add_argument(
         "--metrics", 
@@ -131,7 +132,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     print(summary_pivot)
     print("="*40)
 
-async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None, viz=False):
+async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None, viz=False, viz_port=8080):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -152,7 +153,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
 
     # 4. Run SMC Sampling
     if viz:
-        visualizer = InferenceVisualizer()
+        visualizer = InferenceVisualizer(port=viz_port)
 
     sequences = await sampler.smc(
         n_particles=args.particles,
@@ -232,7 +233,8 @@ async def main():
             replicate,
             llm_wrapper=llm, 
             critic=potential,
-            viz=args.viz
+            viz=args.viz,
+            viz_port=args.viz_port
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else None
