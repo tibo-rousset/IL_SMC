@@ -40,6 +40,14 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Output directory")
     parser.add_argument("--verbose", action="store_true", help="Debug logging")
 
+    parser.add_argument(
+        "--metrics", 
+        nargs="+", 
+        default=["bleu", "rouge", "bleurt"], 
+        choices=["bleu", "rouge", "bleurt", "mc"],
+        help="List of metrics to include in the summary CSV (e.g. --metrics bleu rouge)"
+    )
+
     return parser.parse_args()
 
 def save_summary_csv(results_list, model_name, output_dir):
@@ -176,7 +184,7 @@ async def main():
 
     logger.info("Initializing Dataset & Evaluator...")
     dataset = TruthfulQADataset(split="validation")
-    evaluator = TruthfulQAEvaluator()
+    evaluator = TruthfulQAEvaluator(metrics = args.metrics)
 
     async def bound_model_fn(instance, output_dir, replicate):
         return await inference_fn(

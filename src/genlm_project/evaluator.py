@@ -14,17 +14,23 @@ class TruthfulQAEvaluator(Evaluator):
     Evaluator that matches the official TruthfulQA metric implementations.
     Computes BLEU, ROUGE (1, 2, L), and BLEURT (if available).
     """
-    def __init__(self, cache_dir=None):
+    def __init__(self, metrics, cache_dir=None):
         super().__init__()
+        self.metrics = metrics
         print("Loading metrics (BLEU, ROUGE)...")
-        self.bleu = evaluate.load("bleu", cache_dir=cache_dir)
-        self.rouge = evaluate.load("rouge", cache_dir=cache_dir)
+        if "bleu" in metrics:
+            self.bleu = evaluate.load("bleu", cache_dir=cache_dir)
+        if "rouge" in metrics:
+            self.rouge = evaluate.load("rouge", cache_dir=cache_dir)
         
-        try:
-            self.bleurt = evaluate.load("bleurt", config_name="bleurt-large-512", cache_dir=cache_dir)
-            print("BLEURT loaded successfully.")
-        except Exception as e:
-            print(f"Skipping BLEURT (could not load): {e}")
+        if "bleurt" in metrics:
+            try:
+                self.bleurt = evaluate.load("bleurt", config_name="bleurt-large-512", cache_dir=cache_dir)
+                print("BLEURT loaded successfully.")
+            except Exception as e:
+                print(f"Skipping BLEURT (could not load): {e}")
+                self.bleurt = None
+        else:
             self.bleurt = None
 
     def split_multi_answer(self, ans_str):
@@ -73,29 +79,28 @@ class TruthfulQAEvaluator(Evaluator):
         metrics_dict = {}
 
         # --- A. BLEU ---
-        # Evaluate against every reference individually
-        bleu_scores = []
-        for ref in all_refs:
-            # BLEU expects references as a list of lists: [[ref]]
-            res = self.bleu.compute(predictions=[response], references=[[ref]])
-            bleu_scores.append(res['bleu'])
-        
-        metrics_dict.update(self._calculate_metrics_stats(
-            "bleu", bleu_scores[:len(ref_true)], bleu_scores[len(ref_true):]
-        ))
+        if "bleu" in self.metrics:
+            bleu_scores = []
+            for ref in all_refs:
+                res = self.bleu.compute(predictions=[response], references=[[ref]])
+                bleu_scores.append(res['bleu'])
+            
+            metrics_dict.update(self._calculate_metrics_stats(
+                "bleu", bleu_scores[:len(ref_true)], bleu_scores[len(ref_true):]
+            ))
 
         # --- B. ROUGE (1, 2, L) ---
-        # Evaluate against every reference individually
-        r1_scores, r2_scores, rl_scores = [], [], []
-        for ref in all_refs:
-            res = self.rouge.compute(predictions=[response], references=[[ref]])
-            r1_scores.append(res['rouge1'])
-            r2_scores.append(res['rouge2'])
-            rl_scores.append(res['rougeL'])
-            
-        metrics_dict.update(self._calculate_metrics_stats("rouge1", r1_scores[:len(ref_true)], r1_scores[len(ref_true):]))
-        metrics_dict.update(self._calculate_metrics_stats("rouge2", r2_scores[:len(ref_true)], r2_scores[len(ref_true):]))
-        metrics_dict.update(self._calculate_metrics_stats("rougeL", rl_scores[:len(ref_true)], rl_scores[len(ref_true):]))
+        if "rouge" in self.metrics:
+            r1_scores, r2_scores, rl_scores = [], [], []
+            for ref in all_refs:
+                res = self.rouge.compute(predictions=[response], references=[[ref]])
+                r1_scores.append(res['rouge1'])
+                r2_scores.append(res['rouge2'])
+                rl_scores.append(res['rougeL'])
+                
+            metrics_dict.update(self._calculate_metrics_stats("rouge1", r1_scores[:len(ref_true)], r1_scores[len(ref_true):]))
+            metrics_dict.update(self._calculate_metrics_stats("rouge2", r2_scores[:len(ref_true)], r2_scores[len(ref_true):]))
+            metrics_dict.update(self._calculate_metrics_stats("rougeL", rl_scores[:len(ref_true)], rl_scores[len(ref_true):]))
 
         # --- C. BLEURT ---
         if self.bleurt is not None:
