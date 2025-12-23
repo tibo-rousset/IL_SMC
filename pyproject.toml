@@ -15,8 +15,11 @@ dependencies = [
     "evaluate",
     "transformers",
     "absl-py",
-    # "genlm",     # Ensure genlm is installed in your env
-    "tuned-lens" # If you are using tuned lens features
+    "t5",
+    "genlm-control",
+    "tuned-lens",
+    "bleurt @ git+https://github.com/google-research/bleurt.git",
+    "genlm-eval @ git+https://github.com/genlm/genlm-eval.git"
 ]
 
 [tool.setuptools.packages.find]
