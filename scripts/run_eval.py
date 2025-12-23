@@ -202,7 +202,7 @@ async def main():
     )
 
     if results is not None:
-        save_summary_csv(results, args.model_name, final_output_dir)
+        save_summary_csv(results["all_instance_results"], args.model_name, final_output_dir)
     else:
         logger.warning("No results returned from evaluation loop.")
 
