@@ -182,6 +182,7 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     if viz:
         logger.info(f"Generating visualization for instance ID {inst_id} on port {viz_port}...")
         visualizer.visualize(full_json_path)
+        visualizer.shutdown_server()
 
     return ModelOutput(responses=responses)
 
