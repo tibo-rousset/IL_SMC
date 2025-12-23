@@ -106,23 +106,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     results_long = summary.stack().reset_index()
     results_long.columns = ['Model', 'Metric', 'Value']
 
-    target_metrics = [
-        'MC1', 'MC2',
-        'bleu acc',
-        'rouge1 acc',
-        'bleurt acc', 
-        'BLEURT acc',
-        'GPT-judge acc',
-        'GPT-info acc'
-    ]
-    
-    final_df = results_long[results_long['Metric'].isin(target_metrics)]
-
-    if final_df.empty:
-        logger.warning("No matching metrics found (MC1/BLEU acc etc). Saving all computed metrics instead.")
-        final_df = results_long
-
-    summary_pivot = pd.pivot_table(final_df, values='Value', index='Model', columns='Metric')
+    summary_pivot = pd.pivot_table(results_long, values='Value', index='Model', columns='Metric')
     
     csv_path = os.path.join(output_dir, 'summary.csv')
     summary_pivot.to_csv(csv_path)
