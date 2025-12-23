@@ -8,6 +8,7 @@ import json
 import pandas as pd
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
+from genlm.control import InferenceVisualizer
 
 # Import your custom modules
 from genlm_project.metrics import *
@@ -39,6 +40,7 @@ def parse_args():
     parser.add_argument("--max_instances", type=int, default=5, help="Num instances (0=all)")
     parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Output directory")
     parser.add_argument("--verbose", action="store_true", help="Debug logging")
+    parser.add_argument("--viz", action="store_true", help="Enable visualization")
 
     parser.add_argument(
         "--metrics", 
@@ -129,7 +131,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     print(summary_pivot)
     print("="*40)
 
-async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
+async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None, viz=False):
     # 1. Format Prompt
     raw_ids = truthful_qa_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -143,13 +145,24 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     # 3. Initialize Sampler
     sampler = DirectTokenSampler(current_llm)
     
+    inst_id = instance.get('id', str(abs(hash(instance.get('question', '')))))
+    
+    safe_id = str(inst_id).replace("/", "_")
+    
+    json_filename = f"smc_record_{safe_id}_rep{replicate}.json"
+    full_json_path = os.path.join(output_dir, json_filename)
+
     # 4. Run SMC Sampling
+    if viz:
+        visualizer = InferenceVisualizer()
+
     sequences = await sampler.smc(
         n_particles=args.particles,
         max_tokens=args.max_tokens,
         verbosity=0,
         ess_threshold=0.5,
-        critic=critic 
+        json_path=full_json_path,
+        critic=critic,
     )
 
     # 5. Decode
@@ -166,6 +179,9 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     for sequence, prob in candidates.items():
         clean_resp = sequence.strip().split("\n\n")[0].split("\nQ:")[0].strip() or "I have no comment."
         responses.append(ModelResponse(response=clean_resp, weight=prob))
+    
+    if viz:
+        visualizer.visualize(full_json_path)
 
     return ModelOutput(responses=responses)
 
