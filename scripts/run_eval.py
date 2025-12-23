@@ -53,7 +53,7 @@ def save_summary_csv(results_list, model_name, output_dir):
     for res in results_list:
         row = {'Model': model_name}
         
-        metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
+        metrics_dict = getattr(res["results"], 'metadata', getattr(res["results"], 'metrics', {}))
         
         if metrics_dict:
             row.update(metrics_dict)
