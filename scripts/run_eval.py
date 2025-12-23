@@ -50,18 +50,41 @@ def parse_args():
 
     return parser.parse_args()
 
-def save_summary_csv(results_list, model_name, output_dir):
+def save_summary_csv(results_nested_list, model_name, output_dir):
     """
     Aggregates evaluation results and saves a summary CSV matching 
     the official TruthfulQA format.
+    
+    Handles the nested list structure from run_evaluation: [[Res1], [Res2], ...]
     """
     logger.info("Aggregating results into summary CSV...")
+
+    results_list = []
+    if results_nested_list:
+        for item in results_nested_list:
+            if isinstance(item, list):
+                results_list.extend(item)
+            else:
+                results_list.append(item)
     
     data = []
     for res in results_list:
         row = {'Model': model_name}
         
-        metrics_dict = getattr(res["results"], 'metadata', getattr(res["results"], 'metrics', {}))
+        metrics_dict = {}
+        
+        # 1. Try accessing as dictionary
+        if isinstance(res, dict):
+            if 'metadata' in res:
+                metrics_dict = res['metadata']
+            elif 'metrics' in res:
+                metrics_dict = res['metrics']
+            elif 'results' in res:
+                sub = res['results']
+                metrics_dict = getattr(sub, 'metadata', getattr(sub, 'metrics', {}))
+        
+        else:
+            metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
         
         if metrics_dict:
             row.update(metrics_dict)
@@ -92,7 +115,7 @@ def save_summary_csv(results_list, model_name, output_dir):
     final_df = results_long[results_long['Metric'].isin(target_metrics)]
 
     if final_df.empty:
-        logger.warning("No matching metrics found. Saving all computed metrics instead.")
+        logger.warning("No matching metrics found (MC1/BLEU acc etc). Saving all computed metrics instead.")
         final_df = results_long
 
     summary_pivot = pd.pivot_table(final_df, values='Value', index='Model', columns='Metric')
