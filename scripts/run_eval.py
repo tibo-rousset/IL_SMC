@@ -231,7 +231,8 @@ async def main():
             output_dir,
             replicate,
             llm_wrapper=llm, 
-            critic=potential
+            critic=potential,
+            viz=args.viz
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else None
