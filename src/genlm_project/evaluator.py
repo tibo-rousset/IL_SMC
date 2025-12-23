@@ -25,7 +25,7 @@ class TruthfulQAEvaluator(Evaluator):
         
         if "bleurt" in metrics:
             try:
-                self.bleurt = evaluate.load("bleurt", config_name="bleurt-large-512", cache_dir=cache_dir)
+                self.bleurt = evaluate.load("bleurt", config_name="BLEURT-20", cache_dir=cache_dir)
                 print("BLEURT loaded successfully.")
             except Exception as e:
                 print(f"Skipping BLEURT (could not load): {e}")
