@@ -31,6 +31,9 @@ def parse_args():
     parser.add_argument("--model_name", type=str, default="gpt2", help="HF Model name")
     parser.add_argument("--layer_idx", type=int, default=-1, help="Layer index")
     parser.add_argument("--temperature", type=float, default=0.0001, help="Temperature")
+
+    parser.add_argument("--offline", action="store_true", default=False, help="Offline mode")
+    parser.add_argument("--cache_dir", type=str, default="lens_cache", help="Cache directory for offline mode")
     
     # Generation Args
     parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens")
@@ -201,7 +204,9 @@ async def main():
         args.model_name, 
         backend="hf", 
         target_layer_idx=args.layer_idx,
-        temperature=args.temperature
+        temperature=args.temperature,
+        offline=args.offline,
+        cache_dir=args.cache_dir
     )
 
     metric_fn = entropy_score

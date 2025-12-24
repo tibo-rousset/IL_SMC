@@ -16,6 +16,7 @@ dependencies = [
     "absl-py",
     "genlm-control",
     "tuned-lens",
+    "rouge-score",
     "bleurt @ git+https://github.com/google-research/bleurt.git",
     "genlm-eval @ git+https://github.com/genlm/genlm-eval.git"
 ]

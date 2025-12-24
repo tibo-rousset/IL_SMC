@@ -1,9 +1,11 @@
 import torch
+import logging
 import numpy as np
 from tuned_lens import TunedLens
 from genlm.backend.llm import load_model_by_name
 from genlm.control.potential.built_in.llm import PromptedLLM
 
+logger = logging.getLogger(__name__)
 class TunedLensLLM(PromptedLLM):
     """
     A PromptedLLM that uses a Tuned Lens to project hidden states into vocabulary space.
@@ -38,6 +40,8 @@ class TunedLensLLM(PromptedLLM):
         eos_tokens=None,
         prompt_ids=None,
         temperature=1.0,
+        offline=False,
+        cache_dir=None,
         **kwargs,
     ):
         # Default to vllm if available, else hf
@@ -51,8 +55,14 @@ class TunedLensLLM(PromptedLLM):
         raw_hf_model = getattr(model, "model", getattr(model, "_model", None))
         if raw_hf_model is None:
              raise ValueError("Could not access raw Hugging Face model for Tuned Lens.")
-
-        lens = TunedLens.from_model_and_pretrained(raw_hf_model)
+        
+        if offline:
+            logger.info("Loading Tuned Lens in offline mode.")
+            if cache_dir is None:
+                raise ValueError("cache_dir must be specified in offline mode.")
+            lens = TunedLens.from_model_and_pretrained(raw_hf_model, cache_dir=cache_dir)
+        else:
+            lens = TunedLens.from_model_and_pretrained(raw_hf_model)
         
         return cls(
             model,
