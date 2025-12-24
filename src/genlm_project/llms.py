@@ -60,7 +60,7 @@ class TunedLensLLM(PromptedLLM):
             logger.info("Loading Tuned Lens in offline mode.")
             if cache_dir is None:
                 raise ValueError("cache_dir must be specified in offline mode.")
-            lens = TunedLens.from_model_and_pretrained(raw_hf_model, cache_dir=cache_dir)
+            lens = TunedLens.from_model_and_pretrained(raw_hf_model, cache_dir)
         else:
             lens = TunedLens.from_model_and_pretrained(raw_hf_model)
         
