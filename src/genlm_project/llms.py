@@ -44,14 +44,12 @@ class TunedLensLLM(PromptedLLM):
         cache_dir=None,
         **kwargs,
     ):
-        # Default to vllm if available, else hf
         backend = backend or ("vllm" if torch.cuda.is_available() else "hf")
         
         # Load base model
         model = load_model_by_name(name, backend=backend, **kwargs)
 
         # Load Tuned Lens (requires model to be available)
-        # Note: 'model.model' usually accesses the raw HF model in the backend wrapper
         raw_hf_model = getattr(model, "model", getattr(model, "_model", None))
         if raw_hf_model is None:
              raise ValueError("Could not access raw Hugging Face model for Tuned Lens.")

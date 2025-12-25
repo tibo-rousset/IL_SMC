@@ -210,7 +210,7 @@ async def main():
     )
 
     metric_fn = entropy_score
-    potential = ActivationPotential(model=llm, metric=metric_fn)
+    potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
     logger.info("Potential initialized.")
 
     logger.info("Initializing Dataset & Evaluator...")

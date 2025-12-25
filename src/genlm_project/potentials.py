@@ -5,10 +5,11 @@ class ActivationPotential(Potential):
     """
     Filters sequences based on a metric applied to the TunedLens output.
     """
-    def __init__(self, model: TunedLensLLM, metric):
+    def __init__(self, model: TunedLensLLM, metric, weight=1.0):
         super().__init__(model.vocab)
         self.model = model
         self.metric = metric
+        self.weight = weight
 
     async def _check_score(self, context) -> float:
         activations = await self.model.get_activations(context)
@@ -16,7 +17,7 @@ class ActivationPotential(Potential):
         if activations is None:
             return 0.0
 
-        score = self.metric(activations)
+        score = self.metric(activations) * self.weight
         return score
 
     async def score(self, context) -> float:
@@ -33,7 +34,7 @@ class DualActivationPotential(Potential):
     A generic potential that steers based on the relationship between 
     two sets of activations (e.g., Mid-Layer vs. Final-Layer).
     """
-    def __init__(self, model: TunedLensLLM, metric):
+    def __init__(self, model: TunedLensLLM, metric, weight=1.0):
         """
         Args:
             model: The TunedLensLLM instance.
@@ -42,6 +43,7 @@ class DualActivationPotential(Potential):
         super().__init__(model.vocab)
         self.model = model
         self.metric = metric
+        self.weight = weight
 
     async def _check_score(self, context) -> float:
         # 1. Fetch BOTH sets of logits
@@ -51,7 +53,7 @@ class DualActivationPotential(Potential):
             return 0.0
 
         # 2. Apply the generic metric function
-        score = self.metric(logits_mid, logits_final)
+        score = self.metric(logits_mid, logits_final) * self.weight
         
         return score
 
