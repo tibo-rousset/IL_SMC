@@ -214,7 +214,7 @@ async def main():
     logger.info("Potential initialized.")
 
     logger.info("Initializing Dataset & Evaluator...")
-    dataset = TruthfulQADataset(split="validation")
+    dataset = TruthfulQADataset(split="validation", offline=args.offline, csv_path="TruthfulQA.csv" if args.offline else None)
     evaluator = TruthfulQAEvaluator(metrics = args.metrics)
 
     async def bound_model_fn(instance, output_dir, replicate):

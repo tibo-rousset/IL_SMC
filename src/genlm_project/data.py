@@ -1,4 +1,5 @@
-from datasets import load_dataset
+import pandas as pd
+from datasets import load_dataset, Dataset as HFDataset
 from genlm.eval import Instance, Dataset
 from tqdm import tqdm
 
@@ -16,8 +17,37 @@ class TruthfulQAInstance(Instance):
 class TruthfulQADataset(Dataset[TruthfulQAInstance]):
     """Dataset for TruthfulQA generation evaluation."""
 
-    def __init__(self, split="validation"):
-        self.data = load_dataset("truthful_qa", "generation", split=split)
+    def __init__(self, split="validation", offline=False, csv_path=None):
+        if offline:
+            if csv_path is None:
+                raise ValueError("`csv_path` must be provided when `offline=True`.")
+            
+            df = pd.read_csv(csv_path)
+            
+            column_map = {
+                "Question": "question",
+                "Best Answer": "best_answer",
+                "Correct Answers": "correct_answers",
+                "Incorrect Answers": "incorrect_answers"
+            }
+            df = df.rename(columns=column_map)
+
+            def split_semicolon(val):
+                if isinstance(val, str):
+                    # Split by semicolon and strip whitespace
+                    return [x.strip() for x in val.split(';') if x.strip()]
+                return []
+
+            if "correct_answers" in df.columns:
+                df["correct_answers"] = df["correct_answers"].apply(split_semicolon)
+            if "incorrect_answers" in df.columns:
+                df["incorrect_answers"] = df["incorrect_answers"].apply(split_semicolon)
+
+            self.data = HFDataset.from_pandas(df)
+            
+        else:
+            # Online loading (uses standard HF structure)
+            self.data = load_dataset("truthful_qa", "generation", split=split)
 
     def __iter__(self):
         for i, row in enumerate(tqdm(self.data, desc="Evaluating TruthfulQA")):
