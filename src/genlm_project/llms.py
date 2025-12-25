@@ -61,6 +61,9 @@ class TunedLensLLM(PromptedLLM):
             lens = TunedLens.from_model_and_pretrained(raw_hf_model, cache_dir)
         else:
             lens = TunedLens.from_model_and_pretrained(raw_hf_model)
+
+        if hasattr(model, "device"):
+            lens = lens.to(model.device)
         
         return cls(
             model,
