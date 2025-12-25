@@ -5,6 +5,7 @@ from genlm.eval import Instance, Dataset
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
 class TruthfulQAInstance(Instance):
     """Schema for a TruthfulQA instance."""
     question: str
@@ -48,8 +49,10 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
             if "incorrect_answers" in df.columns:
                 df["incorrect_answers"] = df["incorrect_answers"].apply(split_semicolon)
 
-            logger.info("Converting DataFrame to HuggingFace Dataset...")
-            self.data = HFDataset.from_pandas(df)
+            logger.info("Converting DataFrame to list of dicts (avoiding PyArrow cache hang)...")
+            # FIX: Convert to python objects first to bypass disk caching locks
+            records = df.to_dict("records")
+            self.data = HFDataset.from_list(records)
             
         else:
             self.data = load_dataset("truthful_qa", "generation", split=split)
