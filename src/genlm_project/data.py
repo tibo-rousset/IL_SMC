@@ -28,6 +28,11 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
             logger.info(f"Loading TruthfulQA dataset from local CSV: {csv_path}")
             df = pd.read_csv(csv_path)
 
+            # --- THE FIX IS HERE ---
+            # Fill missing values (NaN) with empty strings to prevent ArrowTypeError
+            df = df.fillna("")
+            # -----------------------
+
             logger.info("Processing dataset columns...")
             column_map = {
                 "Question": "question",
@@ -35,6 +40,7 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
                 "Correct Answers": "correct_answers",
                 "Incorrect Answers": "incorrect_answers"
             }
+            # Rename only columns that exist
             df = df.rename(columns=column_map)
 
             def split_semicolon(val):
@@ -49,8 +55,8 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
             if "incorrect_answers" in df.columns:
                 df["incorrect_answers"] = df["incorrect_answers"].apply(split_semicolon)
 
-            logger.info("Converting DataFrame to list of dicts (avoiding PyArrow cache hang)...")
-            # FIX: Convert to python objects first to bypass disk caching locks
+            logger.info("Converting DataFrame to list of dicts...")
+            # Convert to python objects to bypass potential locking/caching issues
             records = df.to_dict("records")
             self.data = HFDataset.from_list(records)
             
@@ -59,11 +65,12 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
 
     def __iter__(self):
         for i, row in enumerate(tqdm(self.data, desc="Evaluating TruthfulQA")):
+            # Use .get() to handle cases where columns might be missing or named differently
             yield TruthfulQAInstance(
-                question=row["question"],
-                best_answer=row["best_answer"],
-                correct_answers=row["correct_answers"],
-                incorrect_answers=row["incorrect_answers"],
+                question=row.get("question", ""),
+                best_answer=row.get("best_answer", ""),
+                correct_answers=row.get("correct_answers", []),
+                incorrect_answers=row.get("incorrect_answers", []),
                 instance_id=i
             )
 
