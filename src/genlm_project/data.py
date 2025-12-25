@@ -1,8 +1,10 @@
 import pandas as pd
+import logging
 from datasets import load_dataset, Dataset as HFDataset
 from genlm.eval import Instance, Dataset
 from tqdm import tqdm
 
+logger = logging.getLogger(__name__)
 class TruthfulQAInstance(Instance):
     """Schema for a TruthfulQA instance."""
     question: str
@@ -21,9 +23,11 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
         if offline:
             if csv_path is None:
                 raise ValueError("`csv_path` must be provided when `offline=True`.")
-            
+
+            logger.info(f"Loading TruthfulQA dataset from local CSV: {csv_path}")
             df = pd.read_csv(csv_path)
-            
+
+            logger.info("Processing dataset columns...")
             column_map = {
                 "Question": "question",
                 "Best Answer": "best_answer",
