@@ -41,16 +41,17 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
                     # Split by semicolon and strip whitespace
                     return [x.strip() for x in val.split(';') if x.strip()]
                 return []
-
+            
+            logger.info("Splitting answer columns by semicolon...")
             if "correct_answers" in df.columns:
                 df["correct_answers"] = df["correct_answers"].apply(split_semicolon)
             if "incorrect_answers" in df.columns:
                 df["incorrect_answers"] = df["incorrect_answers"].apply(split_semicolon)
 
+            logger.info("Converting DataFrame to HuggingFace Dataset...")
             self.data = HFDataset.from_pandas(df)
             
         else:
-            # Online loading (uses standard HF structure)
             self.data = load_dataset("truthful_qa", "generation", split=split)
 
     def __iter__(self):
