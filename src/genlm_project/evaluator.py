@@ -127,3 +127,69 @@ class TruthfulQAEvaluator(Evaluator):
             desc=f"score={primary_score:.2f}", 
             metadata=metrics_dict
         )
+        
+
+class GSM8KEvaluator(Evaluator):
+    """
+    Evaluator for GSM8K (Math Word Problems).
+    Primary Metric: Exact Match (Accuracy) of the final numerical answer.
+    """
+    def __init__(self, metrics=None):
+        super().__init__()
+        self.metrics = metrics or ["accuracy"]
+
+    def _extract_answer(self, text: str):
+        """
+        Extracts the final numerical answer from a text string.
+        Logic:
+        1. If '####' is present (standard GSM8K format), take everything after it.
+        2. Otherwise, look for the LAST number in the text.
+        3. Remove commas (1,000 -> 1000) for comparison.
+        """
+        if not text:
+            return None
+
+        if "####" in text:
+            text = text.split("####")[-1].strip()
+
+        text_clean = text.replace(",", "")
+
+        numbers = re.findall(r'-?\d*\.?\d+', text_clean)
+        
+        if not numbers:
+            return None
+        
+        return float(numbers[-1])
+
+    def evaluate_sample(self, instance, response):
+        """
+        Evaluates a single generated response against the instance reference.
+        """
+        gold_str = getattr(instance, 'answer', '')
+        gold_val = self._extract_answer(gold_str)
+
+        # 2. Parse Model Output
+        pred_val = self._extract_answer(response)
+
+        is_correct = 0.0
+        if gold_val is not None and pred_val is not None:
+            if abs(gold_val - pred_val) < 1e-6:
+                is_correct = 1.0
+
+        metrics_dict = {
+            "accuracy": is_correct,
+            "gold_answer": gold_val,
+            "pred_answer": pred_val
+        }
+
+        # --- Print Debug Info ---
+        tqdm.write(f"\n[ID: {getattr(instance, 'instance_id', 'N/A')}]")
+        tqdm.write(f"Model: {response}")
+        tqdm.write(f"Extracted: {pred_val} | Gold: {gold_val} | Correct: {is_correct}")
+        tqdm.write("-" * 40)
+
+        return EvaluationResult(
+            score=is_correct, 
+            desc=f"acc={is_correct}", 
+            metadata=metrics_dict
+        )
