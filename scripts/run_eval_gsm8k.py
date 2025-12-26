@@ -17,8 +17,7 @@ from genlm.control import InferenceVisualizer
 
 from genlm_project.metrics import *
 
-from genlm_project import GSM8KDataset, GSM8KEvaluator
-from genlm_project.utils import gsm8k_prompt_formatter
+from genlm_project import GSM8KDataset, GSM8KEvaluator, gsm8k_prompt_formatter
 
 from genlm_project import (
     TunedLensLLM, 
@@ -109,12 +108,6 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     print("="*40)
 
 async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
-    # Ensure formatter is available
-    if 'gsm8k_prompt_formatter' not in globals():
-        # Fallback simplistic formatter if import failed
-        def gsm8k_prompt_formatter(tokenizer, instance, use_chat_format=False):
-            text = f"Question: {instance.question}\nAnswer:"
-            return tokenizer.encode(text)
 
     raw_ids = gsm8k_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
@@ -210,7 +203,7 @@ async def main():
         potential = None
     else:
         metric_fn = kl_divergence_score 
-        potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
+        potential = DualActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
         logger.info(f"Potential initialized with KL Divergence (Weight={args.weight}).")
 
     logger.info("Initializing GSM8K Dataset & Evaluator...")

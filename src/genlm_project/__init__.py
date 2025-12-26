@@ -2,7 +2,7 @@ from .llms import TunedLensLLM
 from .potentials import ActivationPotential
 from .data import TruthfulQADataset, TruthfulQAInstance, GSM8KDataset, GSM8KInstance
 from .evaluator import TruthfulQAEvaluator, GSM8KEvaluator
-from .utils import truthful_qa_prompt_formatter
+from .utils import truthful_qa_prompt_formatter, gsm8k_prompt_formatter
 from .sampler import MonitoredDirectTokenSampler
 
 __all__ = [
