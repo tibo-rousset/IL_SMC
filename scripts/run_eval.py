@@ -41,6 +41,11 @@ def parse_args():
     # Generation Args
     parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens")
     parser.add_argument("--particles", type=int, default=5, help="SMC particles")
+    
+    # --- CHANGED: Logic to disable critic ---
+    parser.add_argument("--no_critic", action="store_true", help="If set, disables the Tuned Lens potential (Standard SMC)")
+    # ----------------------------------------
+
     parser.add_argument("--weight", type=float, default=1.0, help="Potential weight")
     parser.add_argument("--ess_threshold", type=float, default=0.5, help="ESS threshold")
     
@@ -62,12 +67,7 @@ def parse_args():
     return parser.parse_args()
 
 def save_summary_csv(results_nested_list, model_name, output_dir):
-    """
-    Aggregates evaluation results and saves a summary CSV matching 
-    the official TruthfulQA format.
-    
-    Handles the nested list structure from run_evaluation: [[Res1], [Res2], ...]
-    """
+    """Aggregates evaluation results and saves a summary CSV."""
     logger.info("Aggregating results into summary CSV...")
 
     results_list = []
@@ -81,25 +81,19 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     data = []
     for res in results_list:
         row = {'Model': model_name}
-        
         metrics_dict = {}
         
-        # 1. Try accessing as dictionary
         if isinstance(res, dict):
-            if 'metadata' in res:
-                metrics_dict = res['metadata']
-            elif 'metrics' in res:
-                metrics_dict = res['metrics']
+            if 'metadata' in res: metrics_dict = res['metadata']
+            elif 'metrics' in res: metrics_dict = res['metrics']
             elif 'results' in res:
                 sub = res['results'][0]
                 metrics_dict = sub['metadata']
-        
         else:
             metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
         
         if metrics_dict:
             row.update(metrics_dict)
-        
         data.append(row)
 
     if not data:
@@ -107,7 +101,6 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
         return
 
     df = pd.DataFrame(data)
-
     summary = df.groupby('Model').mean(numeric_only=True)
 
     results_long = summary.stack().reset_index()
@@ -118,9 +111,7 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     csv_path = os.path.join(output_dir, 'summary.csv')
     summary_pivot.to_csv(csv_path)
     logger.info(f"Summary CSV saved to: {csv_path}")
-    print("\n" + "="*40)
-    print("FINAL RESULTS SUMMARY")
-    print("="*40)
+    print("\n" + "="*40 + "\nFINAL RESULTS SUMMARY\n" + "="*40)
     print(summary_pivot)
     print("="*40)
 
@@ -139,7 +130,6 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     sampler = MonitoredDirectTokenSampler(current_llm)
     
     inst_id = instance.instance_id if hasattr(instance, 'instance_id') else "unk"
-
     json_filename = f"smc_record_{inst_id}_rep{replicate}.json"
     full_json_path = os.path.join(output_dir, json_filename)
 
@@ -147,13 +137,14 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
     if args.viz:
         visualizer = InferenceVisualizer(port=args.viz_port)
 
+    # Note: If critic is None, this runs standard SMC (particle filtering on base model)
     sequences = await sampler.smc(
         n_particles=args.particles,
         max_tokens=args.max_tokens,
         verbosity=0,
         ess_threshold=args.ess_threshold,
         json_path=full_json_path,
-        critic=critic,
+        critic=critic, 
     )
 
     # 5. Decode
@@ -172,7 +163,6 @@ async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, criti
         responses.append(ModelResponse(response=clean_resp, weight=prob))
     
     if args.viz:
-        logger.info(f"Generating visualization for instance ID {inst_id} on port {args.viz_port}...")
         visualizer.visualize(full_json_path)
         visualizer.shutdown_server()
 
@@ -189,13 +179,20 @@ async def main():
 
     safe_model_name = args.model_name.replace("/", "_")
     
+    # --- CHANGED: Adjust Run Name Logic ---
+    if args.no_critic:
+        critic_str = "NoCritic"
+    else:
+        critic_str = f"W{args.weight}"
+
     run_name = (
         f"{safe_model_name}_"
         f"L{args.layer_idx}_"
         f"T{args.temperature}_"
         f"P{args.particles}_"
-        f"W{args.weight}"
+        f"{critic_str}"
     )
+    # --------------------------------------
     
     final_output_dir = os.path.join(args.output_dir, run_name)
     os.makedirs(final_output_dir, exist_ok=True)
@@ -212,9 +209,13 @@ async def main():
         cache_dir=args.cache_dir
     )
 
-    metric_fn = entropy_score
-    potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
-    logger.info("Potential initialized.")
+    if args.no_critic:
+        logger.info("Running Standard SMC (No Critic/Potential).")
+        potential = None
+    else:
+        metric_fn = entropy_score
+        potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
+        logger.info(f"Potential initialized (Weight={args.weight}).")
 
     logger.info("Initializing Dataset & Evaluator...")
     dataset = TruthfulQADataset(split="validation", offline=args.offline, csv_path="TruthfulQA.csv" if args.offline else None)
@@ -227,7 +228,7 @@ async def main():
             output_dir,
             replicate,
             llm_wrapper=llm, 
-            critic=potential
+            critic=potential # This passes None if --no_critic is set
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else len(dataset)
