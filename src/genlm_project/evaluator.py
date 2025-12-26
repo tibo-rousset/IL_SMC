@@ -59,7 +59,7 @@ class TruthfulQAEvaluator(Evaluator):
             f'{key_name} acc': int(max_true > max_false)
         }
 
-    def evaluate_sample(self, instance, response):
+def evaluate_sample(self, instance, response):
         """
         Evaluates a single generated response against the instance references.
         """
@@ -75,7 +75,16 @@ class TruthfulQAEvaluator(Evaluator):
         if not ref_false:
             ref_false = self.split_multi_answer(getattr(instance, 'incorrect_answers', ''))
 
+        ref_true = [r for r in ref_true if r and str(r).strip()]
+        ref_false = [r for r in ref_false if r and str(r).strip()]
+        
         all_refs = ref_true + ref_false
+        
+        if not all_refs:
+            tqdm.write(f"Warning: No valid references for ID {getattr(instance, 'instance_id', 'N/A')}")
+            return EvaluationResult(score=0.0, desc="No refs", metadata={})
+        # ------------------------------------------------------------------
+
         metrics_dict = {}
 
         # --- A. BLEU ---
