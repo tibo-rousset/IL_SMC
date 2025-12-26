@@ -40,7 +40,7 @@ def kl_divergence_score(logits_mid: torch.Tensor, logits_final: torch.Tensor) ->
     kl_val = F.kl_div(q_log_probs, p_probs, reduction='batchmean')
     val = kl_val.item()
     
-    # Debug log (optional, can be noisy)
+    # Debug log
     logger.debug(f"Dual Activation | KL: {val:.4f}")
     
     return val

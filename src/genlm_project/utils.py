@@ -26,3 +26,12 @@ def truthful_qa_prompt_formatter(tokenizer, instance, use_chat_format=False, pri
     else:
         prompt_text = primer + "\n\nQ: " + instance.question + "\nA:"
         return tokenizer.encode(prompt_text)
+
+def gsm8k_prompt_formatter(tokenizer, instance, use_chat_format=False):
+    """Formats the prompt for GSM8K (Question + Answer trigger)."""
+    # Standard zero-shot formatting for math
+    text = f"Question: {instance.question}\nAnswer:"
+    
+    # Check if tokenizer expects list or string (genlm handling)
+    ids = tokenizer.encode(text)
+    return ids
