@@ -42,9 +42,7 @@ def parse_args():
     parser.add_argument("--max_tokens", type=int, default=30, help="Max tokens")
     parser.add_argument("--particles", type=int, default=5, help="SMC particles")
     
-    # --- CHANGED: Logic to disable critic ---
     parser.add_argument("--no_critic", action="store_true", help="If set, disables the Tuned Lens potential (Standard SMC)")
-    # ----------------------------------------
 
     parser.add_argument("--weight", type=float, default=1.0, help="Potential weight")
     parser.add_argument("--ess_threshold", type=float, default=0.5, help="ESS threshold")

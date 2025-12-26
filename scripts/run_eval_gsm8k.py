@@ -16,8 +16,8 @@ from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 from genlm.control import InferenceVisualizer
 
 from genlm_project.metrics import *
-from genlm_project.datasets import GSM8KDataset
-from genlm_project.evaluators import GSM8KEvaluator
+
+from genlm_project import GSM8KDataset, GSM8KEvaluator
 from genlm_project.utils import gsm8k_prompt_formatter
 
 from genlm_project import (
@@ -49,6 +49,9 @@ def parse_args():
     # Generation Args
     parser.add_argument("--max_tokens", type=int, default=400, help="Max tokens") 
     parser.add_argument("--particles", type=int, default=5, help="SMC particles")
+    
+    parser.add_argument("--no_critic", action="store_true", help="If set, disables the Tuned Lens potential (Standard SMC)")
+
     parser.add_argument("--weight", type=float, default=1.0, help="Potential weight")
     parser.add_argument("--ess_threshold", type=float, default=0.5, help="ESS threshold")
     
@@ -84,7 +87,6 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
         row = {'Model': model_name}
         metrics_dict = getattr(res, 'metadata', getattr(res, 'metrics', {}))
         if isinstance(res, dict): 
-             # Handle weird nesting if it occurs
              if 'metadata' in res: metrics_dict = res['metadata']
         
         if metrics_dict: row.update(metrics_dict)
@@ -95,7 +97,6 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     df = pd.DataFrame(data)
     summary = df.groupby('Model').mean(numeric_only=True)
     
-    # Flatten and pivot for clean CSV
     results_long = summary.stack().reset_index()
     results_long.columns = ['Model', 'Metric', 'Value']
     summary_pivot = pd.pivot_table(results_long, values='Value', index='Model', columns='Metric')
@@ -108,6 +109,13 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
     print("="*40)
 
 async def inference_fn(instance, args, output_dir, replicate, llm_wrapper, critic=None):
+    # Ensure formatter is available
+    if 'gsm8k_prompt_formatter' not in globals():
+        # Fallback simplistic formatter if import failed
+        def gsm8k_prompt_formatter(tokenizer, instance, use_chat_format=False):
+            text = f"Question: {instance.question}\nAnswer:"
+            return tokenizer.encode(text)
+
     raw_ids = gsm8k_prompt_formatter(
         llm_wrapper.model.tokenizer, instance, use_chat_format=False
     )
@@ -169,12 +177,17 @@ async def main():
 
     safe_model_name = args.model_name.replace("/", "_")
     
+    if args.no_critic:
+        critic_str = "NoCritic"
+    else:
+        critic_str = f"W{args.weight}"
+
     run_name = (
         f"{safe_model_name}_"
         f"L{args.layer_idx}_"
         f"T{args.temperature}_"
         f"P{args.particles}_"
-        f"W{args.weight}"
+        f"{critic_str}"
     )
     
     final_output_dir = os.path.join(args.output_dir, run_name)
@@ -192,9 +205,13 @@ async def main():
         cache_dir=args.cache_dir
     )
 
-    metric_fn = kl_divergence_score 
-    potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
-    logger.info("Potential initialized with KL Divergence metric.")
+    if args.no_critic:
+        logger.info("Running Standard SMC (No Critic/Potential).")
+        potential = None
+    else:
+        metric_fn = kl_divergence_score 
+        potential = ActivationPotential(model=llm, metric=metric_fn, weight=args.weight)
+        logger.info(f"Potential initialized with KL Divergence (Weight={args.weight}).")
 
     logger.info("Initializing GSM8K Dataset & Evaluator...")
     
