@@ -179,7 +179,6 @@ async def main():
 
     safe_model_name = args.model_name.replace("/", "_")
     
-    # --- CHANGED: Adjust Run Name Logic ---
     if args.no_critic:
         critic_str = "NoCritic"
     else:
@@ -192,7 +191,6 @@ async def main():
         f"P{args.particles}_"
         f"{critic_str}"
     )
-    # --------------------------------------
     
     final_output_dir = os.path.join(args.output_dir, run_name)
     os.makedirs(final_output_dir, exist_ok=True)
@@ -228,7 +226,7 @@ async def main():
             output_dir,
             replicate,
             llm_wrapper=llm, 
-            critic=potential # This passes None if --no_critic is set
+            critic=potential
         )
 
     max_inst = args.max_instances if args.max_instances > 0 else len(dataset)
