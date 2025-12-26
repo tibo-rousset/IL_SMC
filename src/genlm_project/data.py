@@ -70,3 +70,60 @@ class TruthfulQADataset(Dataset[TruthfulQAInstance]):
     @property
     def schema(self):
         return TruthfulQAInstance
+
+
+
+class GSM8KInstance(Instance):
+    """Schema for a GSM8K instance."""
+    question: str
+    answer: str
+    instance_id: int 
+
+    def __repr__(self):
+        # Truncate answer in repr for readability
+        display_ans = self.answer[:50] + "..." if len(self.answer) > 50 else self.answer
+        return f"[{self.instance_id}] Q: {self.question} (A: {display_ans})"
+
+class GSM8KDataset(Dataset[GSM8KInstance]):
+    """Dataset for GSM8K generation evaluation."""
+
+    def __init__(self, split="test", offline=False, csv_path=None):
+        if offline:
+            if csv_path is None:
+                raise ValueError("`csv_path` must be provided when `offline=True`.")
+
+            logger.info(f"Loading GSM8K dataset from local CSV: {csv_path}")
+            df = pd.read_csv(csv_path)
+
+            logger.info("Processing dataset columns...")
+            column_map = {
+                "Question": "question",
+                "Answer": "answer"
+            }
+            df = df.rename(columns=column_map)
+            
+            # Safety: Fill NaNs to avoid PyArrow errors
+            df = df.fillna("")
+
+            logger.info("Converting DataFrame to HuggingFace Dataset...")
+            self.data = HFDataset.from_pandas(df)
+            
+        else:
+            # GSM8K usually uses the 'main' configuration
+            # Standard splits are 'train' and 'test'
+            self.data = load_dataset("gsm8k", "main", split=split)
+
+    def __iter__(self):
+        for i, row in enumerate(tqdm(self.data, desc="Evaluating GSM8K")):
+            yield GSM8KInstance(
+                question=row["question"],
+                answer=row["answer"],
+                instance_id=i
+            )
+
+    def __len__(self):
+        return len(self.data)
+
+    @property
+    def schema(self):
+        return GSM8KInstance

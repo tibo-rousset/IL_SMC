@@ -33,17 +33,14 @@ def kl_divergence_score(logits_mid: torch.Tensor, logits_final: torch.Tensor) ->
     Calculates KL(P_mid || P_final).
     Returns the raw positive KL value. 
     """
-    # P (Mid/Reference)
     p_probs = F.softmax(logits_mid, dim=-1)
     
-    # Q (Final)
     q_log_probs = F.log_softmax(logits_final, dim=-1)
 
-    # Compute KL
     kl_val = F.kl_div(q_log_probs, p_probs, reduction='batchmean')
     val = kl_val.item()
     
     # Debug log (optional, can be noisy)
-    # logger.debug(f"Dual Activation | KL: {val:.4f}")
+    logger.debug(f"Dual Activation | KL: {val:.4f}")
     
     return val

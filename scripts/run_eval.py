@@ -21,6 +21,9 @@ from genlm_project import (
     truthful_qa_prompt_formatter,
 )
 
+import absl.logging
+absl.logging.set_verbosity(absl.logging.ERROR)
+
 # Setup Logger
 logger = logging.getLogger("eval_script")
 
@@ -42,7 +45,7 @@ def parse_args():
     parser.add_argument("--ess_threshold", type=float, default=0.5, help="ESS threshold")
     
     # Eval Args
-    parser.add_argument("--max_instances", type=int, default=5, help="Num instances (0=all)")
+    parser.add_argument("--max_instances", type=int, default=0, help="Num instances (0=all)")
     parser.add_argument("--output_dir", type=str, default="truthfulqa_results", help="Output directory")
     parser.add_argument("--verbose", action="store_true", help="Debug logging")
     parser.add_argument("--viz", action="store_true", help="Enable visualization")
@@ -227,7 +230,7 @@ async def main():
             critic=potential
         )
 
-    max_inst = args.max_instances if args.max_instances > 0 else None
+    max_inst = args.max_instances if args.max_instances > 0 else len(dataset)
     
     results = await run_evaluation(
         dataset=dataset,
