@@ -1,5 +1,6 @@
 import numpy as np
 import evaluate
+import re
 import logging
 from tqdm import tqdm
 from genlm.eval import Evaluator, EvaluationResult

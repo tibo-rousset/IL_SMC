@@ -5,3 +5,4 @@ build/
 results/
 __pycache__/
 truthfulqa_results/
+results_gsm8k/
