@@ -60,7 +60,7 @@ class TruthfulQAEvaluator(Evaluator):
             f'{key_name} acc': int(max_true > max_false)
         }
 
-def evaluate_sample(self, instance, response):
+    def evaluate_sample(self, instance, response):
         """
         Evaluates a single generated response against the instance references.
         """

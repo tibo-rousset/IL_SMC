@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument("--cache_dir", type=str, default="lens_cache", help="Cache directory")
     
     # Generation Args
-    parser.add_argument("--max_tokens", type=int, default=400, help="Max tokens") 
+    parser.add_argument("--max_tokens", type=int, default=200, help="Max tokens") 
     parser.add_argument("--particles", type=int, default=5, help="SMC particles")
     
     parser.add_argument("--no_critic", action="store_true", help="If set, disables the Tuned Lens potential (Standard SMC)")
