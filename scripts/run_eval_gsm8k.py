@@ -17,12 +17,14 @@ from genlm.control import InferenceVisualizer
 
 from genlm_project.metrics import *
 
-from genlm_project import GSM8KDataset, GSM8KEvaluator, gsm8k_prompt_formatter
-
 from genlm_project import (
-    TunedLensLLM, 
+    TunedLensLLM,
+    GSM8KDataset,
+    GSM8KEvaluator,
     ActivationPotential, 
+    DualActivationPotential,
     MonitoredDirectTokenSampler,
+    gsm8k_prompt_formatter,
 )
 
 import absl.logging
