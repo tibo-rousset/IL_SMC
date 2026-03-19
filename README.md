@@ -15,12 +15,12 @@ For related work, see [genlm/genlm-control](https://github.com/genlm/genlm-contr
 
 1. Clone this repository:
     ```bash
-    git clone https://github.com/genlm/il_smc.git
-    cd il_smc
+    git clone https://github.com/tibo-rousset/IL_SMC.git
     ```
 
 2. Install the dependencies:
     ```bash
+    cd il_smc
     pip install -e .
     ```
 
