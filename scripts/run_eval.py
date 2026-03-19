@@ -293,7 +293,7 @@ async def main():
         output_dir=final_output_dir,
         overwrite_results=True,
         overwrite_outputs=True,
-        verbosity=1,
+        verbosity=0 if not args.verbose else 1,
         max_instances=max_inst,
     )
 

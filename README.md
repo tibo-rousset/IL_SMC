@@ -72,6 +72,7 @@ This project relies heavily on the following libraries:
 
 - **[GenLM Eval](https://github.com/genlm/genlm-eval)**: A library for evaluation scripts and tools for large language models, licensed under the **Apache 2.0 License**.
 - **[GenLM Control](https://github.com/genlm/genlm-control)**: A library providing controlled generation methods for large language models, licensed under the **Apache 2.0 License**.
+- **[Tuned Lens](https://github.com/AlignmentResearch/tuned-lens)**: A library providing a simple interface for training and evaluating Tuned Lenses, licensed under **MIT License**.
 
 These libraries form the foundation of the IL_SMC framework and are integral to running the experiments described in the paper. We would like to thank the authors and contributors for their valuable work.
 
