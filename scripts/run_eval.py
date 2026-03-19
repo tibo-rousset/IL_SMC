@@ -239,7 +239,7 @@ async def main():
     args = parse_args()
 
     logger.remove()
-    logger.add(sys.stdout, level="INFO" if not args.debug else "DEBUG", format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
+    logger.add(sys.stdout, level="INFO" if not args.verbose else "DEBUG", format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
     
     # Run the logging setup via loguru
     logger.info("Starting Evaluation...")
