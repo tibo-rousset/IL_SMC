@@ -10,7 +10,7 @@ from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 from genlm.control import InferenceVisualizer
 
-from genlm_project import (
+from il_smc import (
     TunedLensLLM, 
     ActivationPotential, 
     MonitoredDirectTokenSampler,
@@ -22,7 +22,7 @@ from genlm_project import (
     GSM8KEvaluator,
 )
 
-from genlm_project.metrics import entropy_score, kl_divergence_score
+from il_smc.metrics import entropy_score, kl_divergence_score
 
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR)
