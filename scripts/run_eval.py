@@ -1,11 +1,11 @@
 import asyncio
 import argparse
-import logging
 import torch
 import sys
 import os
 import json
 import pandas as pd
+from loguru import logger
 from genlm.control.sampler import DirectTokenSampler
 from genlm.eval import ModelOutput, ModelResponse, run_evaluation
 from genlm.control import InferenceVisualizer
@@ -23,11 +23,6 @@ from il_smc import (
 )
 
 from il_smc.metrics import entropy_score, kl_divergence_score
-
-import absl.logging
-absl.logging.set_verbosity(absl.logging.ERROR)
-
-logger = logging.getLogger("eval_script")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Eval Script (TruthfulQA & GSM8K)")
@@ -147,13 +142,13 @@ def save_summary_csv(results_nested_list, model_name, output_dir):
         results_long.columns = ['Model', 'Metric', 'Value']
         summary_pivot = pd.pivot_table(results_long, values='Value', index='Model', columns='Metric')
         summary_pivot.to_csv(csv_path)
-        print("\n" + "="*40 + "\nRESULTS SUMMARY\n" + "="*40)
-        print(summary_pivot)
+        logger.info(f"\n{'='*40}\nRESULTS SUMMARY\n{'='*40}")
+        logger.info(summary_pivot)
     except Exception:
         summary.to_csv(csv_path)
-        print(summary)
+        logger.info(summary)
     
-    print("="*40)
+    logger.info("="*40)
 
 # --- INFERENCE FUNCTIONS ---
 
@@ -242,12 +237,12 @@ async def run_smc(instance, args, output_dir, replicate, llm_wrapper, formatter,
 
 async def main():
     args = parse_args()
+
+    logger.remove()
+    logger.add(sys.stdout, level="INFO" if not args.debug else "DEBUG", format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
     
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)]
-    )
+    # Run the logging setup via loguru
+    logger.info("Starting Evaluation...")
 
     # Prepare Output Dir
     safe_model = args.model_name.replace("/", "_")
