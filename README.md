@@ -20,7 +20,7 @@ For related work, see [genlm/genlm-control](https://github.com/genlm/genlm-contr
 
 2. Install the dependencies:
     ```bash
-    cd il_smc
+    cd IL_SMC
     pip install -e .
     ```
 
