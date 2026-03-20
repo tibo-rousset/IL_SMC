@@ -1,6 +1,7 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-g.svg)](https://opensource.org/licenses/MIT)
+Intermediate-Layer Sequential Monte Carlo: Steering LLM Generation via Internal Representations
+===
 
-# Intermediate-Layer Sequential Monte Carlo: Steering LLM Generation via Internal Representations
+[![License: MIT](https://img.shields.io/badge/License-MIT-g.svg)](https://opensource.org/licenses/MIT)
 
 This repository contains the code for the experiments described in the paper *Intermediate-Layer Sequential Monte Carlo: Steering LLM Generation via Internal Representations*.
 
