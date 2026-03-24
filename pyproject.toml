@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "genlm_project"
+name = "il_smc"
 version = "0.1.0"
 description = "Implementations and evaluation scripts for running experiments with Intermediate-Layer Sequential Monte Carlo for steering LLM generation using intermediate model representations."
 readme = "README.md"
