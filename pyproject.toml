@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
-    { name = "Tibault Rousset", email = "tibault.rousset@mail.mcgill.ca" }
+    { name = "///", email = "///" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
